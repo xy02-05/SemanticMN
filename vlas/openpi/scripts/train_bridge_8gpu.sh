@@ -56,7 +56,7 @@ if [ -e "$local_root" ]; then
     echo "local run already exists: $local_root" >&2
     exit 1
 fi
-mkdir -p "$local_root" "$archive_root"+
+mkdir -p "$local_root" "$archive_root"
 
 cat >"$local_root/run_manifest.json" <<EOF
 {
