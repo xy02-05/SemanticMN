@@ -1,0 +1,9 @@
+{
+    "layer_indices": [0, 4, 8, 10, 12, 15, 16, 20, 24, 26],
+    "pooling_types": ["mean_pool"],
+    "projection_type": "fc",
+    "projection_dim": 512,
+    "temperature": 0.07,
+    "text_dim": 512,
+    "_comment": "layer_indices: 每3层提取一次(共10层)，SpatialVLA-4B有26层，hidden_states有27个元素(0-26)"
+}

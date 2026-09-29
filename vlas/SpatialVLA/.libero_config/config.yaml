@@ -1,0 +1,5 @@
+assets: /root/data/xuyuan1/Codes/mirror_neuron/vlas/SpatialVLA/LIBERO/libero/libero/assets
+bddl_files: /root/data/xuyuan1/Codes/mirror_neuron/vlas/SpatialVLA/LIBERO/libero/libero/bddl_files
+benchmark_root: /root/data/xuyuan1/Codes/mirror_neuron/vlas/SpatialVLA/LIBERO/libero/libero
+datasets: /root/data/xuyuan1/Codes/mirror_neuron/vlas/SpatialVLA/LIBERO/libero/libero/../datasets
+init_states: /root/data/xuyuan1/Codes/mirror_neuron/vlas/SpatialVLA/LIBERO/libero/libero/init_files

@@ -1,0 +1,139 @@
+{
+    "name": "BRIDGE_Qwen3VL_Embedding_Alignment_SpatialVLA",
+    "n_gpu": 1,
+    "model_type": "embedding",
+    "use_checkpoint": false,
+    "arch": {
+        "type": "EmbeddingModel",
+        "args": {
+            "embeddings_path": "/root/data/xuyuan1/dataset/embedding/bridge_qwen3vl_text_features.npz",
+            "index_path": "/root/data/xuyuan1/dataset/embedding/bridge_qwen3vl_text_index.json",
+            "normalize_embeddings": true,
+            "preload_to_gpu": true
+        }
+    },
+    "alignment": {
+        "use_alignment": true,
+        "model_type": "AlignmentModel",
+        "args": {
+            "egovlpv2_dim": 4096,
+            "openvla_dim": 2304,
+            "projection_dim": 512,
+            "token_egovlpv2_dim": 4096,
+            "temperature": 0.1,
+            "dropout": 0.1,
+            "layer_norm_eps": 1e-5,
+            "layer_indices": [10],
+            "text_proj_config": {
+                "use_fc_projection": true,
+                "proj_num_layers": 1,
+                "proj_hidden_dim": 1024
+            },
+            "action_proj_config": {
+                "use_fc_projection": false,
+                "proj_num_layers": 2,
+                "proj_hidden_dim": 1024
+            },
+            "use_feature_bank": false,
+            "feature_bank_size": 512,
+            "alignment_mode": "task_id",
+            "vla_mode": "spatialvla",
+            "min_valid_ratio": 0.0,
+            "loss_type": "sigmoid",
+            "sigmoid_bias": 1.5,
+            "learnable_temperature": false,
+            "learnbale_bias": false,
+            "action_pool_mode": "learnable_query",
+            "action_pool_config": {
+                "num_layers": 1,
+                "mlp_hidden_dim": 1024
+            },
+            "use_disentangle": true,
+            "disentangle_config": {
+                "position": "pre_pool",
+                "encoder_type": "mlp",
+                "hidden_dim": 1024,
+                "diff_mode": "cosine_hinge",
+                "diff_weight": 0.075,
+                "recon_weight": 0.01,
+                "dropout": 0.1
+            },
+            "use_distributed_negatives": true,
+            "mode_config": {
+                "as2ts": {
+                    "enabled": true,
+                    "weight": 1.0
+                },
+                "as2tt": {
+                    "enabled": false,
+                    "weight": 0.0,
+                    "temperature": 0.05
+                },
+                "at2tt": {
+                    "enabled": false,
+                    "weight": 0.0
+                },
+                "at2tt_soft": {
+                    "enabled": false,
+                    "weight": 0.3,
+                    "aggregation": "aosm",
+                    "attn_temperature": 0.02
+                }
+            }
+        },
+        "optimizer": {
+            "type": "AdamW",
+            "args": {
+                "lr": 0.0001,
+                "weight_decay": 0.01
+            }
+        },
+        "training": {
+            "enabled": true,
+            "log_interval": 10,
+            "save_interval": 100,
+            "backbone_update_start_pct": 0.1,
+            "stop_last_pct": 0.0
+        }
+    },
+    "optimizer": {
+        "type": "AdamW",
+        "args": {
+            "lr": 0.00005,
+            "weight_decay": 0.01,
+            "lr_mult_head": 1,
+            "lr_mult_cross_modal": 1
+        }
+    },
+    "loss": {
+        "type": "ClipLoss",
+        "args": {
+            "cache_labels": true,
+            "rank": 0,
+            "world_size": 1
+        }
+    },
+    "metrics": [
+        "charades_metrics_vtc"
+    ],
+    "trainer": {
+        "epochs": 5,
+        "max_samples_per_epoch": 500000,
+        "save_dir": "",
+        "save_period": 2,
+        "verbosity": 2,
+        "monitor": "min val_loss_0",
+        "early_stop": 10,
+        "init_val": false,
+        "neptune": false,
+        "task_names": "Dual",
+        "lora": {
+            "use_lora": false,
+            "lora_rank": 32,
+            "lora_dropout": 0
+        }
+    },
+    "visualizer": {
+        "type": ""
+    }
+}

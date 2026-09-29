@@ -1,0 +1,39 @@
+# GR00T N1.6.1 训练/基础推理核心依赖。
+# 说明：官方 pyproject.toml 还包含 tensorrt>=10.14.1.48.post1，
+# 该包只用于 TensorRT 推理加速，本机下载二级 wheel 时长期无进展。
+# 为了先完成训练环境和权重准备，这里最小化跳过 TensorRT，不改动上游项目代码。
+--index-url https://pypi.org/simple
+--extra-index-url https://download.pytorch.org/whl/cu128
+
+albumentations==1.4.18
+opencv-python-headless>=4.5,<4.13
+av==16.1.0
+diffusers==0.35.1
+dm-tree==0.1.8
+lmdb==1.7.5
+msgpack==1.1.0
+msgpack-numpy==0.4.8
+pandas==2.2.3
+peft==0.17.1
+termcolor==3.2.0
+torch==2.7.1
+torchvision==0.22.1
+transformers==4.51.3
+tyro==0.9.17
+click==8.1.8
+datasets==3.6.0
+cryptography==42.0.8
+einops==0.8.1
+gitpython==3.1.46
+gymnasium==1.2.2
+matplotlib==3.10.1
+numpy==1.26.4
+omegaconf==2.3.0
+scipy==1.15.3
+torchcodec==0.4.0
+wandb==0.23.0
+pyzmq==27.0.1
+deepspeed==0.17.6
+# 使用 GR00T N1.6.1 官方 pyproject.toml 中的预编译 wheel，避免本机源码编译 flash-attn。
+flash-attn @ https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.4.post1/flash_attn-2.7.4.post1+cu12torch2.7cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
+onnx>=1.20.0

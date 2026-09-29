@@ -1,0 +1,30 @@
+# LIBERO benchmark 本地仿真环境依赖。
+# 官方 requirements 中 robomimic 会自动拉最新 torch，和 StarVLA/GR00T 的 server-client 评测分工冲突。
+# 这里先安装 LIBERO 仿真所需核心包，robomimic/thop 后续用 --no-deps 安装，避免额外下载一套 CUDA/Torch。
+--index-url https://pypi.org/simple
+
+hydra-core==1.2.0
+numpy==1.24.4
+wandb==0.13.1
+easydict==1.9
+transformers==4.21.1
+opencv-python==4.6.0.66
+einops==0.4.1
+robosuite==1.4.0
+bddl==1.0.1
+future==0.18.2
+matplotlib==3.5.3
+cloudpickle==2.1.0
+gym==0.25.2
+h5py
+termcolor
+tensorboard
+tensorboardX
+imageio
+imageio-ffmpeg
+egl_probe>=1.0.1
+tyro
+mediapy
+websockets
+msgpack
+mujoco==3.2.3

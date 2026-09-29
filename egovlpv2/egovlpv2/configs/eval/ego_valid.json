@@ -1,0 +1,81 @@
+{
+    "name": "CharadesEgo",
+    "n_gpu": 1,
+    "model_type": "epic_charades",
+    "arch": {
+        "type": "FrozenInTime", 
+        "args": {
+            "video_params": {
+                "model": "SpaceTimeTransformer",
+                "arch_config": "base_patch16_224",
+                "num_frames": 4,
+                "pretrained": true,
+                "time_init": "zeros",
+                "drop_path_rate": 0.0
+            },
+            "text_params": {
+                "model": "roberta-base",
+                "pretrained": true,
+                "input": "text"
+            },
+            "projection": "minimal",
+            "use_project_layer": true,
+            "load_checkpoint": "/data/xuyuan/UniVLA_env/mirror_neuron/vlas/SpatialVLA/outputs/spatialvla_4b_mimic_align_v2/2025-08-27/17-13-27_bridge_orig_spatialvla-4b-224-pt_mimic_align_v2_lr1e-4_bs12_node1_gpu2/checkpoint-10000/egovlpv2_model.pth"
+        }
+    },
+    "data_loader":
+    	    [
+            {
+                "type": "MultiDistTextVideoDataLoader",
+                "args":{
+                    "dataset_name": "CharadesEgo",
+                    "data_dir": "/data/xuyuan/UniVLA_env/mirror_neuron/egovlpv2/data/CharadesEgo/CharadesEgo_v1_480_resize256",
+                    "meta_dir": "/data/xuyuan/UniVLA_env/mirror_neuron/egovlpv2/data/CharadesEgo/CharadesEgo",
+                    "reader": "cv2_charades",
+                    "shuffle": true,
+                    "num_workers": 8,
+                    "batch_size": 64,
+                    "split": "train",
+                    "text_params": {
+                        "input": "text"
+                    },
+                    "video_params": {
+                        "input_res": 224,
+                        "num_frames": 4,
+                        "loading": "lax"
+                    }
+                }
+            }
+	    ],
+    "optimizer": {
+        "type": "AdamW",
+        "args":{
+            "lr": 0.00015,
+	    "weight_decay": 0.01,
+	    "lr_mult_head": 1,
+	    "lr_mult_cross_modal": 1
+        }
+    },
+    "loss": {
+        "type": "NormSoftmaxLoss",
+        "args": {
+        }
+    },
+    "metrics": [
+        "charades_metrics_vtc"
+     ],
+    "trainer": {
+        "epochs": 0,
+        "max_samples_per_epoch": 500000,
+        "save_dir": "",
+        "save_period": 2,
+        "verbosity": 2,
+        "monitor": "min val_loss_0",
+        "early_stop": 10,
+        "init_val": true,
+        "neptune": false
+    },
+    "visualizer": {
+        "type": ""
+    }
+} 

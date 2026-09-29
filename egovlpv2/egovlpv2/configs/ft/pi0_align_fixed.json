@@ -1,0 +1,166 @@
+{
+    "name": "FHO_cotrain_with_lora",
+    "n_gpu": 1,
+    "model_type": "epic_charades",
+    "use_checkpoint": false,
+    "arch": {
+        "type": "EgoHODModel",
+        "args": {
+            "video_params": {
+                "model": "SpaceTimeTransformer",
+                "num_frames": 4
+            },
+            "text_params": {
+                "model": "clip"
+            },
+            "projection_dim": 512,
+            "load_checkpoint": "/root/.cache/clip/ViT-L-14-336px.pt",
+            "project_embed_dim": 512,
+            "num_frames": 4,
+            "use_fast_conv1": true,
+            "use_flash_attn": true,
+            "context_length": 77,
+            "vocab_size": 49408,
+            "freeze_temperature": false,
+            "egohod_checkpoint_path": "/root/data/xuyuan1/Codes/mirror_neuron/egovlpv2/pretrain_weight/egohod/large_best.pt",
+            "lora_config": {
+                "enabled": true,
+                "r": 16,
+                "lora_alpha": 32,
+                "lora_dropout": 0.05,
+                "target_modules": ["c_fc", "c_proj", "text_projection"],
+                "layers_to_transform": [6, 7, 8, 9, 10, 11],
+                "bias": "none"
+            },
+            "video_lora_config": {
+                "enabled": true,
+                "r": 16,
+                "lora_alpha": 32,
+                "lora_dropout": 0.05,
+                "target_modules": ["fc1", "fc2", "out_proj", "image_projection"],
+                "layers_to_transform": [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
+                "bias": "none"
+            }
+        }
+    },
+    "alignment": {
+        "use_alignment": true,
+        "model_type": "AlignmentModel",
+        "args": {
+            "egovlpv2_dim": 512,
+            "openvla_dim": 1024,
+            "projection_dim": 512,
+            "token_egovlpv2_dim": 768,
+            "temperature": 0.07,
+            "dropout": 0.1,
+            "layer_norm_eps": 1e-5,
+            "layer_indices": [10],
+            "use_fc_projection": false,
+            "proj_num_layers": 2,
+            "proj_hidden_dim": 512,
+            "use_feature_bank": false,
+            "feature_bank_size": 512,
+            "alignment_mode": "task_id",
+            "vla_mode": "openpi",
+            "min_valid_ratio": 0.0,
+            "loss_type": "sigmoid",
+            "sigmoid_bias": 0.0,
+            "learnable_temperature": true,
+            "action_pool_mode": "learnable_query",
+            "action_pool_config": {
+                "num_layers": 2,
+                "mlp_hidden_dim": 1024
+            },
+            "mode_config": {
+                "as2ts": {
+                    "enabled": true,
+                    "weight": 1.0
+                },
+                "as2tt": {
+                    "enabled": false,
+                    "weight": 0.0,
+                    "temperature": 0.01
+                },
+                "at2tt": {
+                    "enabled": false,
+                    "weight": 0.0
+                }
+            }
+        },
+        "optimizer": {
+            "type": "AdamW",
+            "args": {
+                "lr": 0.0001,
+                "weight_decay": 0.01
+            }
+        },
+        "training": {
+            "enabled": true,
+            "log_interval": 10,
+            "save_interval": 100
+        }
+    },
+    "data_loader": [
+        {
+            "type": "MultiDistTextVideoDataLoader",
+            "args":{
+                "dataset_name": "FHO_Dataset_EgoHOD",
+                "data_dir": "/root/data/xuyuan1/Codes/mirror_neuron/data/Ego4D/v2/clips_resize320",
+                "meta_dir": "/root/data/xuyuan1/Codes/mirror_neuron/data/Ego4D/v2/annotations",
+                "reader": "decord",
+                "shuffle": true,
+                "num_workers": 12,
+                "batch_size": 12,
+                "split": "train",
+                "text_params": {
+                    "input": "text"
+                },
+                "video_params": {
+                    "input_res": 336,
+                    "num_frames": 4,
+                    "loading": "lax"
+                }
+            }
+        }
+    ],
+    "optimizer": {
+        "type": "AdamW",
+        "args":{
+            "lr": 0.00005,
+            "weight_decay": 0.01,
+            "lr_mult_head": 1,
+            "lr_mult_cross_modal": 1
+        }
+    },
+    "loss": {
+        "type": "ClipLoss",
+        "args": {
+            "cache_labels": true,
+            "rank": 0,
+            "world_size": 1
+        }
+    },
+    "metrics": [
+        "charades_metrics_vtc"
+     ],
+    "trainer": {
+        "epochs": 5,
+        "max_samples_per_epoch": 500000,
+        "save_dir": "",
+        "save_period": 2,
+        "verbosity": 2,
+        "monitor": "min val_loss_0",
+        "early_stop": 10,
+        "init_val": false,
+        "neptune": false,
+        "task_names": "Dual",
+        "lora": {
+            "use_lora": false,
+            "lora_rank": 32,
+            "lora_dropout": 0
+        }
+    },
+    "visualizer": {
+        "type": ""
+    }
+}

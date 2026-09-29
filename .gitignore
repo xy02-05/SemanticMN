@@ -1,0 +1,87 @@
+# Python bytecode and tool caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+*.egg-info/
+
+# Local environments and editor state
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+
+# Runtime data lives outside this code-only repository
+/data/
+/weights/
+/runs/
+/logs/
+/cache/
+/output/
+/outputs/
+**/checkpoints/
+**/results/
+**/outputs/
+**/wandb/
+**/swanlog/
+**/.cache/
+
+# Training artifacts
+*.ckpt
+*.safetensors
+*.onnx
+*.bin
+*.parquet
+*.arrow
+*.h5
+*.hdf5
+*.npz
+*.npy
+*.pkl
+*.pt
+*.pth
+events.out.tfevents.*
+*.log
+*.pid
+
+# Tokenizer/model assets accidentally colocated with vendored source
+/vlas/Isaac-GR00T/gr00t/model/modules/nvidia/Eagle-Block2A-2B-v2/vocab.json
+/vlas/Isaac-GR00T/gr00t/model/modules/nvidia/Eagle-Block2A-2B-v2/merges.txt
+
+# Environment snapshot for a model that is not part of this code snapshot
+/requirements/starvla_v16_core.txt
+
+# Broken legacy test launchers retained on disk for forensic reference only.
+# Both contain unresolved conflict markers and are not canonical entry points.
+/analysis/openpi/scripts/test/new/eval_w0.05_fb_fg.sh
+/vlas/openpi/scripts/test/new/eval_w0.05_fb_fg.sh
+
+# Generated media and archives
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.pdf
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.gz
+*.bz2
+*.xz
+*.7z
+
+# Machine-local credentials/configuration
+data_process/atomic_label/config.py
+data_process/epic-kitchen-annot/config.py
+data_process/libero_hard_neg/nuwa_vlm_client.py

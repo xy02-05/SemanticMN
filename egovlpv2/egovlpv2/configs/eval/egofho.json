@@ -1,0 +1,94 @@
+{
+    "name": "EgoFHO_Validation",
+    "n_gpu": 1,
+    "model_type": "Egoclip",
+    "arch": {
+        "type": "FrozenInTime",
+        "args": {
+            "video_params": {
+                "model": "SpaceTimeTransformer",
+                "arch_config": "base_patch16_224",
+                "num_frames": 4,
+                "pretrained": true,
+                "time_init": "zeros"
+            },
+            "text_params": {
+                "model": "roberta-base",
+                "pretrained": true,
+                "input": "text"
+            },
+            "projection": "minimal",
+            "load_checkpoint": "/root/data/xuyuan1/Codes/mirror_neuron/egovlpv2/pretrain_weight/EgoVLPv2_final_converted.pth"
+        }
+    },
+    "data_loader": [
+        {
+            "type": "TextVideoDataLoader",
+            "args": {
+                "dataset_name": "FHO_Dataset",
+                "data_dir": "/root/data/xuyuan1/dataset/Ego4D/v2",
+                "meta_dir": "/root/data/xuyuan1/dataset/Ego4D/v2/annotations",
+                "reader": "cv2_charades",
+                "shuffle": true,
+                "num_workers": 4,
+                "batch_size": 10,
+                "split": "val",
+                "text_params": {
+                    "input": "text"
+                },
+                "video_params": {
+                    "input_res": 224,
+                    "num_frames": 4,
+                    "loading": "lax"
+                }
+            }
+        }
+    ],
+    "validation": {
+        "model_type": "standard",
+        "eval_mode": "embedding_similarity",
+        "metrics": ["v2t_top1", "v2t_top5", "t2v_top1", "t2v_top5"],
+        "visualization": {
+            "enabled": true,
+            "num_samples": 5,
+            "save_dir": "/data/xuyuan/UniVLA_env/mirror_neuron/tests/visualization"
+        },
+        "test_samples": 10
+    },
+    "optimizer": {
+        "type": "AdamW",
+        "args": {
+            "lr": 0.00015,
+            "weight_decay": 0.01,
+            "lr_mult_head": 1,
+            "lr_mult_cross_modal": 1
+        }
+    },
+    "loss": {
+        "type": "NormSoftmaxLoss",
+        "args": {}
+    },
+    "metrics": [
+        "charades_metrics_vtc"
+    ],
+    "trainer": {
+        "epochs": 0,
+        "max_samples_per_epoch": 500000,
+        "save_dir": "",
+        "save_period": 2,
+        "verbosity": 2,
+        "monitor": "min val_loss_0",
+        "early_stop": 10,
+        "init_val": true,
+        "neptune": false,
+        "lora":
+        {
+            "use_lora": false,
+            "lora_rank": 32,
+            "lora_dropout": 0
+        }
+    },
+    "visualizer": {
+        "type": ""
+    }
+}

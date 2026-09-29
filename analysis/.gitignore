@@ -1,0 +1,46 @@
+# ===================== 数据 & 输出 =====================
+data/
+outputs/
+*/output_data/
+*/output/*
+output/
+output_data/
+
+# ===================== 日志 & 文档 =====================
+log/
+doc/
+
+# ===================== 模型权重 =====================
+pretrain_weight/
+models_weight/
+vlms/
+
+# ===================== Python 缓存 =====================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+
+# ===================== 大文件 =====================
+*.npz
+*.npy
+*.pkl
+*.pt
+*.pth
+*.ptl
+*.pthl
+*.ptz
+*.pthz
+*.png
+
+# ===================== 配置 & 其他 =====================
+*.json
+*.yaml
+*.md
+wandb/
+tests/
+emb/
+vis/
+.vscode/
+egovlpv2_backup/
