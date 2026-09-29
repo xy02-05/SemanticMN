@@ -1045,6 +1045,15 @@ def _bridge_egohod_infonce_8gpu_config(
         freeze_vlm=True,
         data=RLDSBridgev2DataConfig(
             repo_id="bridgev2",
+            # Reuse the exact Bridge normalization statistics from the
+            # action-only baseline so pre/post-pool runs differ only in DSN.
+            assets=AssetsConfig(
+                assets_dir=(
+                    f"{work_root}/mirror_neuron/vlas/openpi/"
+                    "assets/bridgev2_rlds_train"
+                ),
+                asset_id="bridgev2",
+            ),
             adapt_to_pi=False,
             rlds_data_dir=f"{work_root}/data/bridge-rlds",
             action_chunk_size=5,
