@@ -5,6 +5,7 @@ from collections.abc import Sequence
 import dataclasses
 import difflib
 import logging
+import os
 import pathlib
 from typing import Any, Literal, Protocol, TypeAlias
 
@@ -1018,8 +1019,97 @@ def _libero_qwen_recon001_50k_config(name: str, alignment_config_name: str) -> T
     )
 
 
+def _bridge_egohod_infonce_8gpu_config(
+    name: str, alignment_config_name: str
+) -> TrainConfig:
+    """Bridge full fine-tuning with global batch 128 on 8 GPUs."""
+    work_root = os.environ.get(
+        "MIRROR_NEURON_WORK_ROOT",
+        "/mnt/bn/2d-videos/xy/work/mirror_neuron",
+    )
+    code_root = os.environ.get(
+        "MIRROR_NEURON_CODE_ROOT",
+        "/mnt/bn/2d-videos/xy/work/mirror_neuron_final",
+    )
+    return TrainConfig(
+        name=name,
+        resume=False,
+        model=pi0_config.Pi0Config(
+            action_dim=32,
+            action_horizon=5,
+            max_token_len=64,
+            vlm_mode="embedding",
+        ),
+        # freeze_vlm only freezes the external semantic encoder. The pi0
+        # backbone remains fully trainable because no freeze_filter is set.
+        freeze_vlm=True,
+        data=RLDSBridgev2DataConfig(
+            repo_id="bridgev2",
+            adapt_to_pi=False,
+            rlds_data_dir=f"{work_root}/data/bridge-rlds",
+            action_chunk_size=5,
+            dataset_name="bridge_orig",
+            filter_dict_path=None,
+            default_prompt="",
+            prompt_from_task=False,
+            task_mapping_path=(
+                f"{work_root}/data/bridge_orig/bridge_orig_lerobot/"
+                "meta/tasks_with_id.jsonl"
+            ),
+            use_only_cam_high=True,
+            repack_transform=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {"cam_high": "observation/image"},
+                            "state": "observation/state",
+                            "actions": "actions",
+                            "prompt": "prompt",
+                            "task_index": "task_index",
+                            "task_id": "task_id",
+                        }
+                    )
+                ]
+            ),
+        ),
+        pytorch_weight_path=f"{work_root}/weights/openpi/pi0_base_pytorch",
+        batch_size=128,
+        per_device_batch_size=None,
+        gradient_accumulation_steps=1,
+        enable_gradient_checkpointing=True,
+        num_train_steps=50_000,
+        num_workers=0,
+        log_interval=50,
+        save_interval=5_000,
+        keep_period=5_000,
+        lr_schedule=_optimizer.CosineDecaySchedule(
+            warmup_steps=500,
+            peak_lr=5e-5,
+            decay_steps=50_000,
+            decay_lr=5e-7,
+        ),
+        optimizer=_optimizer.AdamW(clip_gradient_norm=1.0),
+        use_egovlpv2=False,
+        use_alignment=True,
+        egovlpv2_config_path=(
+            f"{code_root}/egovlpv2/egovlpv2/configs/ft/{alignment_config_name}"
+        ),
+        vlm_loss_weight=0.0,
+        alignment_loss_weight=0.1,
+        wandb_enabled=False,
+    )
+
+
 # Use `get_config` if you need to get a config by name in your code.
 _CONFIGS = [
+    _bridge_egohod_infonce_8gpu_config(
+        "bridgev2_egohod_infonce_dsn_prepool_h512_8gpu",
+        "pi0_bridge_egohod_infonce_dsn_prepool_h512.json",
+    ),
+    _bridge_egohod_infonce_8gpu_config(
+        "bridgev2_egohod_infonce_dsn_postpool_h1024_8gpu",
+        "pi0_bridge_egohod_infonce_dsn_postpool_h1024.json",
+    ),
     # ===== 与官方 openpi 完全对齐的 pi0 LIBERO 配置 =====
     # 用于 JAX 全参数训练，或作为 serve_policy 加载 PyTorch checkpoint 的配置
     TrainConfig(

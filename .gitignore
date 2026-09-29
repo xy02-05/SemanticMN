@@ -61,6 +61,13 @@ events.out.tfevents.*
 /analysis/openpi/scripts/test/new/eval_w0.05_fb_fg.sh
 /vlas/openpi/scripts/test/new/eval_w0.05_fb_fg.sh
 
+# Cancelled exploratory loss-form candidates are retained locally only.
+/egovlpv2/test_disentangle_loss.py
+/egovlpv2/egovlpv2/configs/ft/spatialvla_bridge_egohod_infonce_dsn_cosabs_h1024_postpool.json
+/egovlpv2/egovlpv2/configs/ft/spatialvla_bridge_egohod_infonce_dsn_cosrecon_h1024_postpool.json
+/egovlpv2/egovlpv2/configs/ft/spatialvla_bridge_egohod_infonce_dsn_crosscorr_h1024_postpool.json
+/egovlpv2/egovlpv2/configs/ft/spatialvla_bridge_egohod_infonce_dsn_smoothl1_h1024_postpool.json
+
 # Generated media and archives
 *.png
 *.jpg
