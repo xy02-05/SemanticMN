@@ -592,6 +592,9 @@ def main():
     # ================== 5. 创建优化器和调度器（使用utils函数） ==================
     logger.info("⚙️ 创建优化器和学习率调度器...")
     num_update_steps_per_epoch = len(train_dataloader) // training_args.gradient_accumulation_steps
+    # The scheduler always follows the full epoch budget. ``max_steps`` is a
+    # separate early-stop cap used by the Bridge reproduction runs, so a 10k
+    # run remains the first 10k steps of the same two-epoch LR schedule.
     num_training_steps = num_update_steps_per_epoch * training_args.num_train_epochs
     
     # ================== 5.1. 更新DeepSpeed scheduler配置中的"auto"参数 ==================
@@ -845,7 +848,11 @@ def train_loop(
 
     # 计算总训练步数和当前epoch信息
     num_update_steps_per_epoch = len(train_dataloader) // training_args.gradient_accumulation_steps
-    num_training_steps = num_update_steps_per_epoch * training_args.num_train_epochs
+    schedule_training_steps = num_update_steps_per_epoch * training_args.num_train_epochs
+    if training_args.max_steps > 0:
+        run_training_steps = min(training_args.max_steps, schedule_training_steps)
+    else:
+        run_training_steps = schedule_training_steps
     
     # ================== 计算从哪个epoch开始：支持resume training ==================
     # 如果恢复训练，需要计算当前应该在哪个epoch
@@ -863,13 +870,17 @@ def train_loop(
     # 创建EgoVLPv2数据迭代器（如果提供）
     egovlpv2_iter = iter(egovlpv2_dataloader) if egovlpv2_dataloader else None
     
-    accelerator.print(f"🚀 开始训练：{num_training_steps} 总步数，{training_args.num_train_epochs} 轮")
+    accelerator.print(
+        f"🚀 开始训练：最多 {run_training_steps} 步；"
+        f"学习率日程按 {schedule_training_steps} 步 / "
+        f"{training_args.num_train_epochs} 轮计算"
+    )
     
     # 创建tqdm进度条 - 基于总训练步数，只在主进程显示避免重复输出
     progress_bar = None
     if accelerator.is_main_process:
         progress_bar = tqdm(
-            total=num_training_steps,
+            total=run_training_steps,
             desc="训练进度",
             unit="步",
             ncols=100,  # 设置进度条宽度
@@ -881,7 +892,10 @@ def train_loop(
     model.train()
     
     # 从计算出的start_epoch开始，支持resume training
+    reached_step_limit = global_step >= run_training_steps
     for epoch in range(start_epoch, int(training_args.num_train_epochs)):
+        if reached_step_limit:
+            break
         # 设置分布式采样器的epoch，确保每轮数据分布的随机性（DDP训练必需）
         if hasattr(train_dataloader.sampler, 'set_epoch'):
             train_dataloader.sampler.set_epoch(epoch)
@@ -911,7 +925,7 @@ def train_loop(
                 unwrapped = model.module if hasattr(model, 'module') else model
                 if hasattr(unwrapped, '_global_step'):
                     unwrapped._global_step = global_step
-                    unwrapped._num_train_steps = num_training_steps
+                    unwrapped._num_train_steps = schedule_training_steps
 
                 with accelerator.autocast():
                     outputs = model(
@@ -1109,7 +1123,7 @@ def train_loop(
                                 # 训练进度指标
                                 "train/epoch": epoch + 1,  # 从1开始计数，更直观
                                 "train/global_step": global_step,
-                                "train/progress": global_step / num_training_steps,  # 训练进度百分比
+                                "train/progress": global_step / run_training_steps,  # 本次运行进度百分比
                                 
                                 # 系统资源指标
                                 "system/gpu_memory_allocated_gb": memory_allocated,
@@ -1207,7 +1221,7 @@ def train_loop(
                             bb_detach = alignment_loss_dict.get('backbone_detached', 0.0)
                             bb_str = " [BB_DETACH]" if bb_detach > 0.5 else ""
                             accelerator.print(
-                                f"🚀 Step {global_step}/{num_training_steps} | "
+                                f"🚀 Step {global_step}/{run_training_steps} | "
                                 f"📊总损失:{avg_loss:.4f} | 🎯VLA_avg:{avg_spatial_loss:.4f} | 👁️Ego_avg:{avg_egovlpv2_loss:.4f} | 🔗Align_avg:{avg_alignment_loss:.4f} | "
                                 f"📈lr:{current_lr:.2e} | 📋当前:总={current_total:.4f}, vla={current_spatial:.4f}, ego={current_egovlp:.4f} | "
                                 f"{alignment_detail}{dsn_str}{bb_str}"
@@ -1258,10 +1272,20 @@ def train_loop(
                         
                         # 保存完成后打印确认信息
                         accelerator.print(f"✅ 检查点保存完成 - 步数: {global_step}，继续训练...")
+
+                    if global_step >= run_training_steps:
+                        accelerator.print(
+                            f"✅ 已达到训练步数上限 {run_training_steps}；"
+                            f"LR 日程总长度仍为 {schedule_training_steps}"
+                        )
+                        reached_step_limit = True
+                        break
         
         # 每轮结束时的验证和保存
         epoch_avg_loss = epoch_loss / len(train_dataloader)
         accelerator.print(f"Epoch {epoch+1} 平均损失: {epoch_avg_loss:.4f}")
+        if reached_step_limit:
+            break
     
     # 关闭tqdm进度条
     if progress_bar is not None:

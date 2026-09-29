@@ -2,23 +2,29 @@
 
 set -euo pipefail
 
-WORK_ROOT=/mnt/bn/2d-videos/xy/work/mirror_neuron
-REPO_ROOT="$WORK_ROOT/mirror_neuron/vlas/SpatialVLA"
-EGO_ROOT="$WORK_ROOT/mirror_neuron/egovlpv2"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
+CODE_ROOT="$(cd -- "$REPO_ROOT/../.." && pwd)"
+# 数据、权重和输出仍位于代码仓库之外。默认兼容当前共享工作区，
+# 也允许其他机器通过 MIRROR_NEURON_WORK_ROOT 显式覆盖。
+WORK_ROOT="${MIRROR_NEURON_WORK_ROOT:-$(dirname "$CODE_ROOT")/mirror_neuron}"
+EGO_ROOT="$CODE_ROOT/egovlpv2"
 ENV_ROOT="${SPATIALVLA_ENV_ROOT:-/mnt/bn/2d-videos/xy/tools/miniconda3/envs/mirror_spatialvla_h20}"
 PYTHON="$ENV_ROOT/bin/python"
 TORCHRUN="$ENV_ROOT/bin/torchrun"
 MODEL_PATH="$WORK_ROOT/weights/spatialvla/spatialvla-4b-224-pt"
 DATA_ROOT="$WORK_ROOT/data/spatialvla_bridge"
-ARCHIVE_BASE="$WORK_ROOT/runs/spatialvla_bridge_archive"
-LOCAL_BASE="${SPATIALVLA_LOCAL_BASE:-/opt/tiger/rh2/rh2/init/spatialvla_bridge_runs}"
+ARCHIVE_BASE="${SPATIALVLA_ARCHIVE_BASE:-$WORK_ROOT/runs/reproduction/spatialvla_bridge}"
+LOCAL_BASE="${SPATIALVLA_LOCAL_BASE:-/tmp/mirror_neuron_final/spatialvla_bridge}"
 PER_DEVICE_BATCH_SIZE="${PER_DEVICE_BATCH_SIZE:-12}"
 GRADIENT_ACCUMULATION_STEPS="${GRADIENT_ACCUMULATION_STEPS:-8}"
 NUM_TRAIN_EPOCHS="${NUM_TRAIN_EPOCHS:-2}"
+MAX_STEPS="${MAX_STEPS:-10000}"
 SAVE_STEPS="${SAVE_STEPS:-1000}"
 LOGGING_STEPS="${LOGGING_STEPS:-20}"
 FIX_RAW_LENGTH="${FIX_RAW_LENGTH:-}"
 ALIGNMENT_LOSS_WEIGHT="${ALIGNMENT_LOSS_WEIGHT:-1.0}"
+SEED="${SEED:-42}"
 
 RUN_NAME=
 ALIGNMENT_CONFIG=
@@ -65,6 +71,11 @@ while [ "$#" -gt 0 ]; do
             ;;
     esac
 done
+
+if ! [[ "$MAX_STEPS" =~ ^[0-9]+$ ]] || [ "$MAX_STEPS" -lt 1 ] || [ "$MAX_STEPS" -gt 10000 ]; then
+    echo "MAX_STEPS must be an integer in [1, 10000], got: $MAX_STEPS" >&2
+    exit 2
+fi
 
 for variable in RUN_NAME ALIGNMENT_CONFIG CUDA_DEVICES MASTER_PORT; do
     if [ -z "${!variable}" ]; then
@@ -125,9 +136,10 @@ cat >"$LOCAL_RUN_DIR/run_manifest.json" <<EOF
   "alignment_loss_weight": $ALIGNMENT_LOSS_WEIGHT,
   "per_device_batch_size": $PER_DEVICE_BATCH_SIZE,
   "gradient_accumulation_steps": $GRADIENT_ACCUMULATION_STEPS,
-  "num_train_epochs": $NUM_TRAIN_EPOCHS,
+  "lr_schedule_epochs": $NUM_TRAIN_EPOCHS,
+  "max_train_steps": $MAX_STEPS,
   "save_steps": $SAVE_STEPS,
-  "seed": 42
+  "seed": $SEED
 }
 EOF
 cp "$LOCAL_RUN_DIR/run_manifest.json" "$ARCHIVE_RUN_DIR/run_manifest.json"
@@ -209,6 +221,7 @@ exec "$TORCHRUN" \
     --bf16 True \
     --tf32 True \
     --num_train_epochs "$NUM_TRAIN_EPOCHS" \
+    --max_steps "$MAX_STEPS" \
     --per_device_train_batch_size "$PER_DEVICE_BATCH_SIZE" \
     --gradient_accumulation_steps "$GRADIENT_ACCUMULATION_STEPS" \
     --save_strategy steps \
@@ -220,7 +233,7 @@ exec "$TORCHRUN" \
     --lr_scheduler_type linear \
     --logging_steps "$LOGGING_STEPS" \
     --max_grad_norm 1.0 \
-    --seed 42 \
+    --seed "$SEED" \
     --do_train True \
     --deepspeed scripts/zero1.json \
     --grad_checkpoint True \

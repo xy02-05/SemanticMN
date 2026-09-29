@@ -57,7 +57,19 @@ bash vlas/SpatialVLA/scripts/spatialvla_4b_finetune/train_bridge_embedding_exper
 ```
 
 The launcher writes a run manifest and a copy of the alignment config beside
-the checkpoint before training starts.
+the checkpoint before training starts. `NUM_TRAIN_EPOCHS=2` defines the full
+learning-rate schedule, while `MAX_STEPS` independently caps execution and is
+validated to be at most 10,000 for this reproduction. For example:
+
+```bash
+NUM_TRAIN_EPOCHS=2 MAX_STEPS=10000 SEED=42 \
+ALIGNMENT_LOSS_WEIGHT=1.0 \
+bash vlas/SpatialVLA/scripts/spatialvla_4b_finetune/train_bridge_embedding_experiment.sh \
+  --run-name spatialvla_bridge_postpool_h1024_seed42 \
+  --alignment-config egovlpv2/egovlpv2/configs/ft/spatialvla_bridge_egohod_infonce_dsn_recon001_h1024_postpool.json \
+  --cuda-devices 0,1 \
+  --master-port 29710
+```
 
 ## GR00T N1.6
 
