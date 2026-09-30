@@ -550,10 +550,23 @@ def create_data_loader(
     logging.info(f"data_config: {data_config}")
 
     if data_config.rlds_data_dir is not None:
+        # RLDS datasets are instantiated independently by every PyTorch rank,
+        # so their batch size must already be the per-rank batch size.  Unlike
+        # create_torch_data_loader(), this path is not wrapped in a
+        # DistributedSampler that divides the global batch by world size.
+        rlds_batch_size = config.batch_size
+        if framework == "pytorch" and getattr(config, "per_device_batch_size", None) is not None:
+            rlds_batch_size = config.per_device_batch_size
+        logging.info(
+            "RLDS batch size: framework=%s global=%s per_rank=%s",
+            framework,
+            config.batch_size,
+            rlds_batch_size,
+        )
         return create_rlds_data_loader(
             data_config,
             action_horizon=config.model.action_horizon,
-            batch_size=config.batch_size,
+            batch_size=rlds_batch_size,
             sharding=sharding,
             shuffle=shuffle,
             num_batches=num_batches,
