@@ -12,7 +12,15 @@ ARCHIVE_BASE="${OPENPI_ARCHIVE_BASE:-$WORK_ROOT/runs/reproduction/openpi_bridge}
 CONFIG_NAME="${1:?usage: $0 CONFIG_NAME EXP_NAME [MASTER_PORT]}"
 EXP_NAME="${2:?usage: $0 CONFIG_NAME EXP_NAME [MASTER_PORT]}"
 MASTER_PORT="${3:-30310}"
-NUM_GPUS=8
+NUM_GPUS="${NUM_GPUS:-8}"
+CUDA_DEVICES="${CUDA_DEVICES:-$(seq -s, 0 $((NUM_GPUS - 1)))}"
+GLOBAL_BATCH_SIZE=128
+GRADIENT_ACCUMULATION_STEPS=1
+if (( GLOBAL_BATCH_SIZE % (NUM_GPUS * GRADIENT_ACCUMULATION_STEPS) != 0 )); then
+    echo "global batch $GLOBAL_BATCH_SIZE is not divisible by $NUM_GPUS GPUs" >&2
+    exit 2
+fi
+PER_DEVICE_BATCH_SIZE=$((GLOBAL_BATCH_SIZE / NUM_GPUS / GRADIENT_ACCUMULATION_STEPS))
 MODE="${MODE:-formal}"
 
 case "$MODE" in
@@ -63,9 +71,9 @@ cat >"$local_root/run_manifest.json" <<EOF
   "config_name": "$CONFIG_NAME",
   "exp_name": "$EXP_NAME",
   "num_gpus": $NUM_GPUS,
-  "global_batch_size": 128,
-  "per_device_batch_size": 16,
-  "gradient_accumulation_steps": 1,
+  "global_batch_size": $GLOBAL_BATCH_SIZE,
+  "per_device_batch_size": $PER_DEVICE_BATCH_SIZE,
+  "gradient_accumulation_steps": $GRADIENT_ACCUMULATION_STEPS,
   "mode": "$MODE",
   "num_train_steps": $NUM_TRAIN_STEPS,
   "save_interval": $SAVE_INTERVAL,
@@ -87,7 +95,7 @@ cp "$0" "$archive_root/launch_script.sh"
     >"$local_root/offload_watcher.log" 2>&1 &
 echo "$!" >"$local_root/offload_watcher.pid"
 
-export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+export CUDA_VISIBLE_DEVICES="$CUDA_DEVICES"
 export PYTHONPATH="$OPENPI_ROOT/src:$CODE_ROOT/egovlpv2:${PYTHONPATH:-}"
 export MIRROR_NEURON_WORK_ROOT="$WORK_ROOT"
 export MIRROR_NEURON_CODE_ROOT="$CODE_ROOT"
@@ -108,7 +116,7 @@ exec "$ENV_ROOT/bin/torchrun" \
     scripts/train_pytorch_xy.py "$CONFIG_NAME" \
     --exp-name "$EXP_NAME" \
     --checkpoint-base-dir "$LOCAL_BASE" \
-    --gradient-accumulation-steps 1 \
+    --gradient-accumulation-steps "$GRADIENT_ACCUMULATION_STEPS" \
     --num-train-steps "$NUM_TRAIN_STEPS" \
     --save-interval "$SAVE_INTERVAL" \
     --no-wandb-enabled \
